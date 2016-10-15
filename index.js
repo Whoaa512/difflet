@@ -16,7 +16,7 @@ var exports = module.exports = function (opts_) {
         s.end = function () {};
         s.readable = true;
         s.writable = true;
-        
+
         difflet(opts, prev, next);
         return data;
     };
@@ -58,29 +58,29 @@ function difflet (opts, prev, next) {
         if (opts.write) opts.write(buf, stream)
         else stream.write(buf)
     };
-    
+
     var commaFirst = opts.comma === 'first';
-    
+
     var stringify = function (node, params) {
         return stringifier.call(this, true, node, params || opts);
     };
     var plainStringify = function (node, params) {
         return stringifier.call(this, false, node, params || opts);
     };
-    
+
     var levels = 0;
     function set (type) {
         if (levels === 0) opts.start(type, stream);
         levels ++;
     }
-    
+
     function unset (type) {
         if (--levels === 0) opts.stop(type, stream);
     }
-    
+
     function stringifier (insertable, node, opts) {
         var indent = opts.indent;
-        
+
         var writeObj = function(obj) {
             traverse(obj).forEach(function (x) {
                 plainStringify.call(this, x, { indent : indent });
@@ -91,7 +91,7 @@ function difflet (opts, prev, next) {
             var prevNode = traverse.get(prev, this.path || []);
         }
         var inserted = insertable && prevNode === undefined;
-        
+
         var indentx;
         try {
             indentx = indent ? Array(
@@ -102,18 +102,18 @@ function difflet (opts, prev, next) {
             indentx = '';
         }
         if (commaFirst) indentx = indentx.slice(indent);
-        
+
         if (Array.isArray(node)) {
             var updated = (prevNode || traverse.has(prev, this.path))
                 && !Array.isArray(prevNode);
             if (updated) {
                 set('updated');
             }
-            
+
             if (opts.comment && !Array.isArray(prevNode)) {
                 indent = 0;
             }
-            
+
             if (Array.isArray(prevNode) && node.length != prevNode.length && node.length == 0) {
                 write('[\n');
 
@@ -142,12 +142,12 @@ function difflet (opts, prev, next) {
                     write('[');
                 }
             });
-            
+
             this.post(function (child) {
                 if (!child.isLast && !(indent && commaFirst)) {
                     write(',');
                 }
-                
+
                 var prev = prevNode && prevNode[child.key];
                 if (indent && opts.comment && child.node !== prev
                 && (typeof child.node !== 'object' || typeof prev !== 'object')
@@ -157,7 +157,7 @@ function difflet (opts, prev, next) {
                     traverse(prev).forEach(writeObj);
                     unset('comment');
                 }
-                
+
                 if (!child.isLast) {
                     if (indent && commaFirst) {
                         write('\n' + indentx + ', ');
@@ -180,11 +180,11 @@ function difflet (opts, prev, next) {
                 }
 
             });
-            
+
             this.after(function () {
                 if (indent && commaFirst) write('\n' + indentx);
                 else if (indent) write('\n' + indentx.slice(indent));
-                
+
                 write(']');
                 if (updated) unset('updated');
                 if (inserted) unset('inserted');
@@ -192,7 +192,7 @@ function difflet (opts, prev, next) {
         }
         else if (isRegExp(node)) {
             this.block();
-            
+
             if (inserted) {
                 set('inserted');
                 write(node.toString());
@@ -229,7 +229,7 @@ function difflet (opts, prev, next) {
                 })
                 : []
             ;
-            
+
             this.before(function () {
                 if (inserted) set('inserted');
                 write(indent && commaFirst && !this.isRoot
@@ -237,7 +237,7 @@ function difflet (opts, prev, next) {
                     : '{'
                 );
             });
-            
+
             this.pre(function (x, key) {
                 if (insertable) {
                     var obj = traverse.get(prev, this.path.concat(key));
@@ -246,18 +246,18 @@ function difflet (opts, prev, next) {
                         set('inserted');
                     }
                 }
-                
+
                 if (indent && !commaFirst) write('\n' + indentx);
-                
+
                 plainStringify(key);
                 write(indent ? ' : ' : ':');
             });
-            
+
             this.post(function (child) {
                 if (!child.isLast && !(indent && commaFirst)) {
                     write(',');
                 }
-                
+
                 if (child.isLast && deleted.length) {
                     if (insertedKey) unset('inserted');
                     insertedKey = false;
@@ -266,7 +266,7 @@ function difflet (opts, prev, next) {
                     unset('inserted');
                     insertedKey = false;
                 }
-                
+
                 var prev = prevNode && prevNode[child.key];
                 if (indent && opts.comment && child.node !== prev
                 && (typeof child.node !== 'object' || typeof prev !== 'object')
@@ -278,11 +278,11 @@ function difflet (opts, prev, next) {
                     });
                     unset('comment');
                 }
-                
+
                 if (child.isLast && deleted.length) {
                     if (insertedKey) unset('inserted');
                     insertedKey = false;
-                    
+
                     if (indent && commaFirst) {
                         write('\n' + indentx + ', ')
                     }
@@ -302,16 +302,16 @@ function difflet (opts, prev, next) {
                     }
                 }
             });
-            
+
             this.after(function () {
                 if (inserted) unset('inserted');
-                
+
                 if (deleted.length) {
                     if (indent && !commaFirst
                     && Object.keys(node).length === 0) {
                         write('\n' + indentx);
                     }
-                    
+
                     set('deleted');
                     deleted.forEach(function (key, ix) {
                         if (indent && opts.comment) {
@@ -321,13 +321,13 @@ function difflet (opts, prev, next) {
                             unset('comment');
                             set('deleted');
                         }
-                        
+
                         plainStringify(key);
                         write(indent ? ' : ' : ':');
                         traverse(prevNode[key]).forEach(function (x) {
                             plainStringify.call(this, x, { indent : 0 });
                         });
-                        
+
                         var last = ix === deleted.length - 1;
                         if (insertable && !last) {
                             if (indent && commaFirst) {
@@ -341,7 +341,7 @@ function difflet (opts, prev, next) {
                     });
                     unset('deleted');
                 }
-                
+
                 if (commaFirst && indent) {
                     write(indentx.slice(indent) + ' }');
                 }
@@ -353,13 +353,13 @@ function difflet (opts, prev, next) {
         }
         else {
             var changed = false;
-            
+
             if (inserted) set('inserted');
             else if (insertable && !deepEqual(prevNode, node)) {
                 changed = true;
                 set('updated');
             }
-            
+
             if (typeof node === 'string') {
                 write('"' + node.toString().replace(/"/g, '\\"') + '"');
             }
@@ -381,12 +381,12 @@ function difflet (opts, prev, next) {
             else {
                 write(node.toString());
             }
-            
+
             if (inserted) unset('inserted');
             else if (changed) unset('updated');
         }
     }
-    
+
     if (opts.stream) {
         traverse(next).forEach(stringify);
     }
@@ -394,13 +394,13 @@ function difflet (opts, prev, next) {
         traverse(next).forEach(stringify);
         stream.emit('end');
     });
-    
+
     return stream;
 }
 
 function isRegExp (node) {
     return node instanceof RegExp || (node
-        && typeof node.test === 'function' 
+        && typeof node.test === 'function'
         && typeof node.exec === 'function'
         && typeof node.compile === 'function'
         && node.constructor && node.constructor.name === 'RegExp'
